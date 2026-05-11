@@ -55,7 +55,6 @@ export class MotionMCPAgent extends McpAgent<Env> {
 export default {
   fetch(request: Request, env: Env, ctx: ExecutionContext) {
     const url = new URL(request.url);
-
     // Health check endpoint
     if (url.pathname === "/" || url.pathname === "/health") {
       return new Response(
@@ -63,22 +62,15 @@ export default {
         { headers: { "Content-Type": "application/json" } }
       );
     }
-
     // Validate secret path: /mcp/{secret}/...
-    // Clients configure URL as: https://your-worker.workers.dev/mcp/YOUR_SECRET
     const pathParts = url.pathname.split("/").filter(Boolean);
     if (pathParts[0] !== "mcp" || pathParts[1] !== env.MOTION_MCP_SECRET) {
       return new Response("Not found", { status: 404 });
     }
-
     // Rewrite path to strip the secret before passing to McpAgent
-    // e.g., /mcp/SECRET -> /mcp, /mcp/SECRET/sse -> /mcp/sse
     const cleanPath = "/mcp" + (pathParts.length > 2 ? "/" + pathParts.slice(2).join("/") : "");
     const cleanUrl = new URL(cleanPath, url.origin);
     const cleanRequest = new Request(cleanUrl, request);
-
-    return (
-      MotionMCPAgent.mount("/mcp") as { fetch: (req: Request, env: Env, ctx: ExecutionContext) => Promise<Response> }
-    ).fetch(cleanRequest, env, ctx);
+    return MotionMCPAgent.serve("/mcp").fetch(cleanRequest, env, ctx);
   },
 };
