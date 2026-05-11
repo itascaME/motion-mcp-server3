@@ -24,7 +24,7 @@ export class InputValidator {
   initializeValidators(toolDefinitions: McpToolDefinition[]): void {
     for (const tool of toolDefinitions) {
       try {
-        const zodSchema = fromJSONSchema(tool.inputSchema);
+        const zodSchema = fromJSONSchema(tool.inputSchema as Parameters<typeof fromJSONSchema>[0]);
         this.validators.set(tool.name, zodSchema);
       } catch (error) {
         console.error(`Failed to compile schema for tool ${tool.name}:`, error);
@@ -54,7 +54,7 @@ export class InputValidator {
       if (error instanceof z.ZodError) {
         return {
           valid: false,
-          errors: error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join('; ')
+          errors: error.issues.map((e: z.ZodIssue) => `${e.path.join('.')}: ${e.message}`).join('; ')
         };
       }
       return {
